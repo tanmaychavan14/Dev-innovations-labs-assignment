@@ -6,7 +6,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const customerRoutes = require('./routes/customers');
 const leadRoutes = require('./routes/leads');
-
+const connectDB = require("./config/database.js");
 const app = express();
 
 // Middleware
@@ -19,12 +19,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/leads', leadRoutes);
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.log('MongoDB connection error:', err));
+connectDB();
 
 // Error handling middleware
 app.use((err, req, res, next) => {
