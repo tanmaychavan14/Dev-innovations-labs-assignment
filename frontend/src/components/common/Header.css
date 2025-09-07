@@ -1,0 +1,122 @@
+/* components/common/Header.css */
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 70px;
+}
+
+.header-logo {
+  text-decoration: none;
+  color: white;
+}
+
+.header-logo h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.header-nav {
+  display: flex;
+  gap: 30px;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  opacity: 0.9;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.welcome-text {
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.auth-links {
+  display: flex;
+  gap: 10px;
+}
+
+.header .btn {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.header .btn-outline {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.header .btn-outline:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: white;
+}
+
+.header .btn-primary {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.header .btn-primary:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 768px) {
+  .header-container {
+    padding: 0 10px;
+    height: 60px;
+  }
+  
+  .header-logo h1 {
+    font-size: 20px;
+  }
+  
+  .header-nav {
+    display: none;
+  }
+  
+  .welcome-text {
+    display: none;
+  }
+  
+  .header .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
