@@ -1,12 +1,14 @@
 const Customer = require('../models/Customer');
 const Lead = require('../models/Lead');
-const { customerValidator } = require('../utils/validators');
 
+// CREATE CUSTOMER
 exports.createCustomer = async (req, res) => {
   try {
-    const { error } = customerValidator.validate(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
+    const { name, email, phone } = req.body;
+
+    // Basic manual validation
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required' });
     }
 
     const customer = new Customer({
@@ -17,10 +19,12 @@ exports.createCustomer = async (req, res) => {
     await customer.save();
     res.status(201).json({ message: 'Customer created successfully', customer });
   } catch (error) {
+    console.error("Create customer error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
+// GET ALL CUSTOMERS
 exports.getCustomers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -53,10 +57,12 @@ exports.getCustomers = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error("Get customers error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
+// GET CUSTOMER BY ID
 exports.getCustomerById = async (req, res) => {
   try {
     const customer = await Customer.findOne({
@@ -72,15 +78,19 @@ exports.getCustomerById = async (req, res) => {
 
     res.json({ customer, leads });
   } catch (error) {
+    console.error("Get customer by ID error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
+// UPDATE CUSTOMER
 exports.updateCustomer = async (req, res) => {
   try {
-    const { error } = customerValidator.validate(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
+    const { name, email } = req.body;
+
+    // Optional basic validation
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required' });
     }
 
     const customer = await Customer.findOneAndUpdate(
@@ -95,10 +105,12 @@ exports.updateCustomer = async (req, res) => {
 
     res.json({ message: 'Customer updated successfully', customer });
   } catch (error) {
+    console.error("Update customer error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
+// DELETE CUSTOMER
 exports.deleteCustomer = async (req, res) => {
   try {
     const customer = await Customer.findOneAndDelete({
@@ -115,6 +127,7 @@ exports.deleteCustomer = async (req, res) => {
 
     res.json({ message: 'Customer and associated leads deleted successfully' });
   } catch (error) {
+    console.error("Delete customer error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

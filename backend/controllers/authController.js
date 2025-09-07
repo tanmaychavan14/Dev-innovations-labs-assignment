@@ -1,19 +1,19 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const { registerValidator, loginValidator } = require('../utils/validators');
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
+// REGISTER
 exports.register = async (req, res) => {
   try {
-    const { error } = registerValidator.validate(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
-
     const { name, email, password, role } = req.body;
+
+    // Basic checks (instead of Joi)
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email and password are required' });
+    }
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -21,10 +21,11 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
+    // Create new user
     const user = new User({
       name,
       email,
-      passwordHash: password,
+      passwordHash: password,   // ⚠️ check your schema field!
       role: role || 'User'
     });
 
@@ -43,18 +44,19 @@ exports.register = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error("Register error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
+// LOGIN
 exports.login = async (req, res) => {
   try {
-    const { error } = loginValidator.validate(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
-
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -79,6 +81,7 @@ exports.login = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

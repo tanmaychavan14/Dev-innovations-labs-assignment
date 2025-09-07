@@ -9,7 +9,7 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    role: 'User' // default role
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState('');
@@ -36,10 +36,6 @@ const Register = () => {
   };
 
   const validateForm = () => {
-    if (formData.password !== formData.confirmPassword) {
-      setValidationError('Passwords do not match');
-      return false;
-    }
     if (formData.password.length < 6) {
       setValidationError('Password must be at least 6 characters long');
       return false;
@@ -56,7 +52,12 @@ const Register = () => {
     
     setIsSubmitting(true);
     
-    const result = await register(formData.name, formData.email, formData.password);
+    const result = await register(
+      formData.name,
+      formData.email,
+      formData.password,
+      formData.role
+    );
     
     if (result.success) {
       navigate('/dashboard');
@@ -116,18 +117,19 @@ const Register = () => {
               placeholder="Enter your password (min. 6 characters)"
             />
           </div>
-          
+
           <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
+            <label htmlFor="role">Role</label>
+            <select
+              id="role"
+              name="role"
+              value={formData.role}
               onChange={handleChange}
               required
-              placeholder="Confirm your password"
-            />
+            >
+              <option value="User">User</option>
+              <option value="Admin">Admin</option>
+            </select>
           </div>
           
           <button 

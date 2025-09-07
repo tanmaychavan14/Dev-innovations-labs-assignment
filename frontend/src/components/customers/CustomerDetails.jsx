@@ -1,40 +1,45 @@
 // components/customers/CustomerDetail.js
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../../services/api';
-import LoadingSpinner from '../common/LoadingSpinner';
 import LeadForm from './LeadForm';
-import './Customer.css';
+import LoadingSpinner from '../common/LoadingSpinner';
+import './CustomerDetail.css';
 
 const CustomerDetail = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+  const { id } = useParams(); // Changed from customerId to id
   const [customer, setCustomer] = useState(null);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('All');
 
   useEffect(() => {
-    fetchCustomerData();
+    if (id) {
+      fetchAllData();
+    }
   }, [id]);
 
-  const fetchCustomerData = async () => {
+  const fetchAllData = async () => {
+    setLoading(true);
+    setError('');
+    
     try {
-      setLoading(true);
-      
-      // Fetch customer details
-      const customerResponse = await api.get(`/customers/${id}`);
-      setCustomer(customerResponse.data);
-      
-      // Fetch customer's leads
-      const leadsResponse = await api.get(`/leads?customerId=${id}`);
+      // Fetch both customer and leads data
+      const [customerResponse, leadsResponse] = await Promise.all([
+        api.get(`/customers/${id}`), // Using id instead of customerId
+        api.get('/leads', { params: { customerId: id } }) // Backend expects customerId in query
+      ]);
+
+      console.log('Customer response:', customerResponse.data);
+      console.log('Leads response:', leadsResponse.data);
+
+      setCustomer(customerResponse.data.customer || customerResponse.data);
       setLeads(leadsResponse.data.leads || []);
       
     } catch (err) {
-      console.error('Fetch customer data error:', err);
+      console.error('Fetch data error:', err);
       if (err.response?.status === 404) {
         setError('Customer not found');
       } else {
@@ -45,22 +50,9 @@ const CustomerDetail = () => {
     }
   };
 
-  const handleDeleteLead = async (leadId) => {
-    if (window.confirm('Are you sure you want to delete this lead?')) {
-      try {
-        await api.delete(`/leads/${leadId}`);
-        setLeads(leads.filter(lead => lead._id !== leadId));
-      } catch (err) {
-        console.error('Delete lead error:', err);
-        alert('Failed to delete lead');
-      }
-    }
-  };
-
-  const handleLeadFormSubmit = () => {
-    setShowLeadForm(false);
+  const handleAddLead = () => {
     setEditingLead(null);
-    fetchCustomerData();
+    setShowLeadForm(true);
   };
 
   const handleEditLead = (lead) => {
@@ -68,191 +60,163 @@ const CustomerDetail = () => {
     setShowLeadForm(true);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'New': return '#3b82f6';
-      case 'Contacted': return '#f59e0b';
-      case 'Converted': return '#10b981';
-      case 'Lost': return '#ef4444';
-      default: return '#6b7280';
+  const handleDeleteLead = async (leadId) => {
+    if (window.confirm('Are you sure you want to delete this lead?')) {
+      try {
+        await api.delete(`/leads/${leadId}`);
+        // Refresh only leads, not customer data
+        const leadsResponse = await api.get('/leads', { params: { customerId: id } });
+        setLeads(leadsResponse.data.leads || []);
+      } catch (err) {
+        console.error('Delete lead error:', err);
+        alert('Failed to delete lead');
+      }
     }
   };
 
-  const filteredLeads = statusFilter === 'All' 
-    ? leads 
-    : leads.filter(lead => lead.status === statusFilter);
+  const handleLeadFormSubmit = async () => {
+    setShowLeadForm(false);
+    setEditingLead(null);
+    
+    // Refresh only leads data
+    try {
+      const leadsResponse = await api.get('/leads', { params: { customerId: id } });
+      setLeads(leadsResponse.data.leads || []);
+    } catch (err) {
+      console.error('Refresh leads error:', err);
+    }
+  };
 
-  const leadStats = leads.reduce((acc, lead) => {
-    acc[lead.status] = (acc[lead.status] || 0) + 1;
-    acc.totalValue += lead.value || 0;
-    return acc;
-  }, { totalValue: 0 });
+  const handleLeadFormCancel = () => {
+    setShowLeadForm(false);
+    setEditingLead(null);
+  };
 
+  // Show loading spinner
   if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  if (error) {
     return (
-      <div className="error-container">
-        <h2>{error}</h2>
-        <Link to="/customers" className="btn btn-primary">
-          Back to Customers
-        </Link>
+      <div className="customer-detail-container">
+        <LoadingSpinner />
       </div>
     );
   }
 
+  // Show error message
+  if (error) {
+    return (
+      <div className="customer-detail-container">
+        <div className="error-message">{error}</div>
+        <button onClick={() => fetchAllData()} className="btn btn-primary">
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // Show message if no customer found
   if (!customer) {
-    return <div>Customer not found</div>;
+    return (
+      <div className="customer-detail-container">
+        <div className="error-message">Customer not found</div>
+        <button onClick={() => fetchAllData()} className="btn btn-primary">
+          Try Again
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="customer-detail">
-      {/* Customer Header */}
+    <div className="customer-detail-container">
       <div className="customer-header">
-        <Link to="/customers" className="back-link">
-          ← Back to Customers
-        </Link>
-        
-        <div className="customer-info-header">
+        <div className="customer-info">
           <div className="customer-avatar-large">
-            {customer.name.charAt(0).toUpperCase()}
+            {(customer.name && customer.name.charAt(0).toUpperCase()) || '?'}
           </div>
           <div className="customer-details">
-            <h1>{customer.name}</h1>
-            <p className="customer-email">{customer.email}</p>
-            <div className="customer-meta">
-              {customer.phone && <span>📞 {customer.phone}</span>}
-              {customer.company && <span>🏢 {customer.company}</span>}
+            <h1>{customer.name || 'N/A'}</h1>
+            <p className="customer-company">{customer.company || 'N/A'}</p>
+            <div className="customer-contact">
+              <span>📧 {customer.email || 'N/A'}</span>
+              <span>📱 {customer.phone || 'N/A'}</span>
             </div>
           </div>
         </div>
+        <button 
+          onClick={handleAddLead}
+          className="btn btn-primary"
+        >
+          Add New Lead
+        </button>
       </div>
 
-      {/* Lead Stats */}
-      <div className="lead-stats">
-        <div className="stat-card">
-          <h3>{leads.length}</h3>
-          <p>Total Leads</p>
-        </div>
-        <div className="stat-card">
-          <h3>${leadStats.totalValue.toLocaleString()}</h3>
-          <p>Total Value</p>
-        </div>
-        <div className="stat-card">
-          <h3>{leadStats.Converted || 0}</h3>
-          <p>Converted</p>
-        </div>
-        <div className="stat-card">
-          <h3>{leadStats.New || 0}</h3>
-          <p>New Leads</p>
-        </div>
-      </div>
-
-      {/* Leads Section */}
       <div className="leads-section">
-        <div className="leads-header">
-          <h2>Leads</h2>
-          <div className="leads-controls">
-            <select 
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="status-filter"
-            >
-              <option value="All">All Status</option>
-              <option value="New">New</option>
-              <option value="Contacted">Contacted</option>
-              <option value="Converted">Converted</option>
-              <option value="Lost">Lost</option>
-            </select>
+        <div className="section-header">
+          <h2>Leads ({leads.length})</h2>
+        </div>
+
+        {leads.length === 0 ? (
+          <div className="empty-state">
+            <h3>No leads yet</h3>
+            <p>Start by adding a lead for this customer</p>
             <button 
-              onClick={() => setShowLeadForm(true)}
+              onClick={handleAddLead}
               className="btn btn-primary"
             >
-              Add Lead
+              Add First Lead
             </button>
           </div>
-        </div>
-
-        {filteredLeads.length > 0 ? (
+        ) : (
           <div className="leads-grid">
-            {filteredLeads.map(lead => (
+            {leads.map(lead => (
               <div key={lead._id} className="lead-card">
                 <div className="lead-header">
-                  <h3>{lead.title}</h3>
-                  <div className="lead-actions">
-                    <button 
-                      onClick={() => handleEditLead(lead)}
-                      className="btn btn-sm btn-outline"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteLead(lead._id)}
-                      className="btn btn-sm btn-danger"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-                
-                <p className="lead-description">{lead.description}</p>
-                
-                <div className="lead-meta">
-                  <span 
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(lead.status) }}
-                  >
-                    {lead.status}
+                  <h3>{lead.title || 'Untitled Lead'}</h3>
+                  <span className={`status-badge ${(lead.status || 'new').toLowerCase()}`}>
+                    {lead.status || 'New'}
                   </span>
-                  <span className="lead-value">${lead.value?.toLocaleString()}</span>
                 </div>
-                
-                <div className="lead-date">
-                  Created: {new Date(lead.createdAt).toLocaleDateString()}
+                <p className="lead-description">{lead.description || 'No description'}</p>
+                <div className="lead-meta">
+                  <span className="lead-value">
+                    ${lead.value ? lead.value.toLocaleString() : '0'}
+                  </span>
+                  <span className="lead-date">
+                    {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+                <div className="lead-actions">
+                  <button 
+                    onClick={() => handleEditLead(lead)}
+                    className="btn btn-sm btn-outline"
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteLead(lead._id)}
+                    className="btn btn-sm btn-danger"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <h3>
-              {statusFilter === 'All' 
-                ? 'No leads yet' 
-                : `No ${statusFilter.toLowerCase()} leads`
-              }
-            </h3>
-            <p>
-              {statusFilter === 'All'
-                ? 'Add the first lead for this customer'
-                : 'Try changing the status filter or add a new lead'
-              }
-            </p>
-            {statusFilter === 'All' && (
-              <button 
-                onClick={() => setShowLeadForm(true)}
-                className="btn btn-primary"
-              >
-                Add First Lead
-              </button>
-            )}
           </div>
         )}
       </div>
 
       {/* Lead Form Modal */}
       {showLeadForm && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" onClick={(e) => {
+          if (e.target.classList.contains('modal-overlay')) {
+            handleLeadFormCancel();
+          }
+        }}>
           <div className="modal-content">
             <LeadForm 
               lead={editingLead}
-              customerId={customer._id}
+              customerId={id} // Pass the id as customerId for the LeadForm
               onSubmit={handleLeadFormSubmit}
-              onCancel={() => {
-                setShowLeadForm(false);
-                setEditingLead(null);
-              }}
+              onCancel={handleLeadFormCancel}
             />
           </div>
         </div>
@@ -261,4 +225,4 @@ const CustomerDetail = () => {
   );
 };
 
-export default CustomerDetail;
+export default CustomerDetail
