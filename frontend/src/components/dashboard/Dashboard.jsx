@@ -223,6 +223,7 @@ const Dashboard = () => {
       // Fetch customers
       const customersResponse = await api.get('/customers?limit=5');
       const customers = customersResponse.data.customers || [];
+      console.log('Customers response:', customersResponse.data);
       setRecentCustomers(customers);
       
       // Fetch leads and stats
@@ -245,7 +246,7 @@ const Dashboard = () => {
       }
       
       setStats({
-        totalCustomers: customersResponse.data.total || 0,
+        totalCustomers: customersResponse.data.pagination?.total || customers.length || 0,
         totalLeads: leadStatsData.totals?.totalLeads || 0,
         totalValue: leadStatsData.totals?.totalValue || 0,
         avgValue: leadStatsData.totals?.avgValue || 0,
