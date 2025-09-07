@@ -5,7 +5,7 @@ import { useAuth } from '../../Context/AuthContext';
 import './Header.css';
 
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 

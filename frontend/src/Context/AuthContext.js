@@ -1,12 +1,11 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+
+import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import axios from 'axios';
 
-// Create axios instance
+// Axios instance
 const api = axios.create({
   baseURL: 'http://localhost:5000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
 const AuthContext = createContext();
@@ -15,138 +14,70 @@ const AuthContext = createContext();
 const initialState = {
   token: localStorage.getItem('token'),
   user: null,
-  isLoading: true,
+  isAuthenticated: !!localStorage.getItem('token'),
+  isLoading: false,
   error: null,
-  isAuthenticated: false,
 };
 
-// Auth reducer
+// Reducer
 const authReducer = (state, action) => {
   switch (action.type) {
     case 'SET_LOADING':
-      return {
-        ...state,
-        isLoading: action.payload,
-        error: null,
-      };
+      return { ...state, isLoading: action.payload };
     case 'AUTH_SUCCESS':
-      // Store token in localStorage
-      if (action.payload.token) {
-        localStorage.setItem('token', action.payload.token);
-      }
+      if (action.payload.token) localStorage.setItem('token', action.payload.token);
       return {
         ...state,
         token: action.payload.token,
-        user: action.payload.user,
+        user: action.payload.user || null,
+        isAuthenticated: true,
         isLoading: false,
         error: null,
-        isAuthenticated: true,
       };
     case 'AUTH_ERROR':
       localStorage.removeItem('token');
-      return {
-        ...state,
-        token: null,
-        user: null,
-        isLoading: false,
-        error: action.payload,
-        isAuthenticated: false,
-      };
+      return { ...state, token: null, user: null, isAuthenticated: false, isLoading: false, error: action.payload };
     case 'LOGOUT':
       localStorage.removeItem('token');
       delete api.defaults.headers.common['Authorization'];
-      return {
-        ...state,
-        token: null,
-        user: null,
-        isLoading: false,
-        error: null,
-        isAuthenticated: false,
-      };
+      return { ...state, token: null, user: null, isAuthenticated: false, error: null, isLoading: false };
     case 'CLEAR_ERROR':
-      return {
-        ...state,
-        error: null,
-      };
+      return { ...state, error: null };
     default:
       return state;
   }
 };
 
+// Provider
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Use useEffect with empty dependency array and check token inside
-  // useEffect(() => {
-  //   const verifyToken = async () => {
-  //     const token = localStorage.getItem('token');
-      
-  //     if (token) {
-  //       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  //       try {
-  //         const res = await api.get('/auth');
-  //         dispatch({
-  //           type: 'AUTH_SUCCESS',
-  //           payload: { token, user: res.data.user },
-  //         });
-  //       } catch (error) {
-  //         console.error('Token verification failed:', error);
-  //         dispatch({ type: 'AUTH_ERROR', payload: 'Token verification failed' });
-  //       }
-  //     } else {
-  //       dispatch({ type: 'SET_LOADING', payload: false });
-  //     }
-  //   };
-
-  //   verifyToken();
-  // }, []); // Empty dependency array - runs only once on mount
-
+  // Login function
   const login = useCallback(async (email, password) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await api.post('/auth/login', { email, password });
-      
-      // Set Authorization header immediately
-      if (response.data.token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-      }
-      
+      if (response.data.token) api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
       dispatch({ type: 'AUTH_SUCCESS', payload: response.data });
       return { success: true };
-    } catch (error) {
-      const message = error.response?.data?.message || 'Login failed';
+    } catch (err) {
+      const message = err.response?.data?.message || 'Login failed';
       dispatch({ type: 'AUTH_ERROR', payload: message });
       return { success: false, error: message };
     }
   }, []);
-const register = async (name, email, password, role) => {
-  try {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    const response = await api.post('/auth/register', { name, email, password, role });
-    dispatch({ type: 'AUTH_SUCCESS', payload: response.data });
-    return { success: true };
-  } catch (error) {
-    const message = error.response?.data?.message || 'Registration failed';
-    dispatch({ type: 'AUTH_ERROR', payload: message });
-    return { success: false, error: message };
-  }
-};
 
+  // Logout
+  const logout = useCallback(() => dispatch({ type: 'LOGOUT' }), []);
 
-  const logout = useCallback(() => {
-    dispatch({ type: 'LOGOUT' });
-  }, []);
-
-  const clearError = useCallback(() => {
-    dispatch({ type: 'CLEAR_ERROR' });
-  }, []);
+  // Clear error
+  const clearError = useCallback(() => dispatch({ type: 'CLEAR_ERROR' }), []);
 
   return (
     <AuthContext.Provider
       value={{
         ...state,
         login,
-        register,
         logout,
         clearError,
       }}
@@ -156,10 +87,9 @@ const register = async (name, email, password, role) => {
   );
 };
 
+// Hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };

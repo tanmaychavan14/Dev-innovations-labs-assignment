@@ -9,7 +9,7 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
-    role: 'User' // default role
+    role: 'Admin' // default role
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState('');
@@ -127,7 +127,7 @@ const Register = () => {
               onChange={handleChange}
               required
             >
-              <option value="User">User</option>
+              
               <option value="Admin">Admin</option>
             </select>
           </div>
